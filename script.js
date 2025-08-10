@@ -6,6 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const sunIcon = document.getElementById('sun-icon');
     const moonIcon = document.getElementById('moon-icon');
 
+    // Minimal chat history to send to backend
+    const history = [
+      { role: 'assistant', content: 'Hi! I am Ramble. What would you like to talk about?' }
+    ];
+
     // Dark mode functionality
     const initDarkMode = () => {
         const isDark = localStorage.getItem('darkMode') === 'true';
@@ -47,60 +52,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     promptEl.addEventListener('input', autoResize);
 
-    // Cohere API Integration
-    const getAIResponse = async (prompt) => {
-        try {
-            console.log('Attempting Cohere API call with prompt:', prompt);
-            
-            const response = await fetch('https://api.cohere.ai/v1/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer yKD1pMR3nDLftOschsSz6JtCKKEFjDuNrU4zRVFG'
-                },
-                body: JSON.stringify({
-                    model: 'command',
-                    prompt: `You are Ramble, a friendly AI chatbot. Respond as Ramble, not as Coral or any other name. User message: ${prompt}`,
-                    max_tokens: 200,
-                    temperature: 0.7,
-                    k: 0,
-                    stop_sequences: [],
-                    return_likelihoods: 'NONE'
-                })
-            });
+    // Backend Intake API (TruePlace) - never expose API keys on the client
+    const CHAT_API_URL = (window.CHAT_API_URL || 'http://localhost:3000/api/chat-intake');
 
-            console.log('Cohere Response status:', response.status);
+    const getAIResponse = async () => {
+        try {
+            const response = await fetch(CHAT_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: history })
+            });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Cohere API Error Response:', errorText);
-                throw new Error(`Cohere API request failed: ${response.status}`);
+                throw new Error(`Chat API failed: ${response.status} ${errorText}`);
             }
 
             const data = await response.json();
-            console.log('Cohere API Response data:', data);
-            
-            if (data && data.generations && data.generations[0] && data.generations[0].text) {
-                return data.generations[0].text.trim();
-            } else {
-                console.error('Invalid Cohere response format:', data);
-                throw new Error('Invalid Cohere response format');
-            }
+            const text = data?.text || 'Could you tell me more?';
+            return text;
         } catch (error) {
-            console.error('Cohere API Error:', error);
-            
-            // Enhanced fallback responses
-            const mockResponses = [
-                `That's an interesting question about "${prompt}"! Let me share my thoughts on that.`,
-                `I appreciate you asking about "${prompt}". Here's what I think about this topic.`,
-                `Great prompt: "${prompt}"! This reminds me of some fascinating concepts.`,
-                `You've raised an excellent point about "${prompt}". Let me elaborate on that.`,
-                `I find "${prompt}" quite intriguing. Here's my perspective on this.`,
-                `Thanks for bringing up "${prompt}"! This is definitely worth exploring further.`,
-                `Your question about "${prompt}" is thought-provoking. Let me address that.`,
-                `I'm glad you asked about "${prompt}". This is an important topic to discuss.`
+            console.error('Chat API Error:', error);
+            const fallback = [
+                `Thanks for sharing! Tell me more.`,
+                `Interesting—what else would you add?`,
+                `Got it. What matters most to you about this?`,
             ];
-            return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+            return fallback[Math.floor(Math.random() * fallback.length)];
         }
     };
 
@@ -132,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Add user message
         addMessage(prompt, true);
+        history.push({ role: 'user', content: prompt });
 
         // Clear input and reset height
         promptEl.value = '';
@@ -147,10 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         // Get AI response
-        const response = await getAIResponse(prompt);
+        const response = await getAIResponse();
         
         // Add AI message
         addMessage(response, false);
+        history.push({ role: 'assistant', content: response });
 
         // Re-enable submit button
         submitBtn.disabled = false;
@@ -171,4 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitPrompt();
         }
     });
+
+    // Seed assistant greeting in UI
+    addMessage(history[0].content, false);
 });
