@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer yKD1pMR3nDLftOschsSz6JtCKKEFjDuNrU4zRVFG'
+                    'Authorization': 'Bearer 4DQ20ZHpxBXyiluU8ZTaRv1TwX44cQx7xcOOn97V'
                 },
                 body: JSON.stringify({
                     model: 'command',
