@@ -26,6 +26,17 @@ function mockFetch(handler) {
   return calls;
 }
 
+function cohereOk(text) {
+  return new Response(JSON.stringify({
+    id: 'should-not-leak',
+    finish_reason: 'COMPLETE',
+    message: {
+      role: 'assistant',
+      content: [{ type: 'text', text }],
+    },
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
 function header(init, name) {
   const headers = init && init.headers;
   if (!headers) return undefined;
@@ -153,10 +164,7 @@ test('bad requests are rejected before Cohere is called', async () => {
 });
 
 test('a valid message calls Cohere as Ramble and returns only the reply text', async () => {
-  const calls = mockFetch(() => new Response(JSON.stringify({
-    text: 'Hey, what should we ramble about?',
-    generation_id: 'should-not-leak',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  const calls = mockFetch(() => cohereOk('Hey, what should we ramble about?'));
 
   const history = [
     { role: 'USER', message: 'I like rivers' },
@@ -169,25 +177,29 @@ test('a valid message calls Cohere as Ramble and returns only the reply text', a
     chat_history: history,
   }), { COHERE_API_KEY: '  ' + KEY + '  ' });
   const result = await read(response);
+  const sent = JSON.parse(calls[0].init.body);
 
   assert.equal(result.status, 200);
   assert.deepEqual(result.body, { text: 'Hey, what should we ramble about?' });
   assert.equal(result.allowOrigin, PAGES_ORIGIN);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, 'https://api.cohere.ai/v1/chat');
+  assert.equal(calls[0].url, 'https://api.cohere.com/v2/chat');
   assert.equal(header(calls[0].init, 'Authorization'), 'Bearer ' + KEY);
-  assert.equal(JSON.parse(calls[0].init.body).model, 'command-r');
-  assert.equal(JSON.parse(calls[0].init.body).message, 'Tell me more.');
-  assert.equal(JSON.parse(calls[0].init.body).preamble, PREAMBLE);
-  assert.deepEqual(JSON.parse(calls[0].init.body).chat_history, [
-    { role: 'USER', message: 'I like rivers' },
-    { role: 'CHATBOT', message: 'Rivers are good company.' },
+  assert.equal(sent.model, 'command-r-08-2024');
+  assert.equal(sent.stream, false);
+  assert.equal(sent.preamble, undefined);
+  assert.equal(sent.chat_history, undefined);
+  assert.deepEqual(sent.messages, [
+    { role: 'system', content: PREAMBLE },
+    { role: 'user', content: 'I like rivers' },
+    { role: 'assistant', content: 'Rivers are good company.' },
+    { role: 'user', content: 'Tell me more.' },
   ]);
   assert.equal(JSON.stringify(result.body).includes(KEY), false);
 });
 
 test('history sent to Cohere is capped at the latest 20 messages', async () => {
-  const calls = mockFetch(() => new Response(JSON.stringify({ text: 'Still here.' }), { status: 200 }));
+  const calls = mockFetch(() => cohereOk('Still here.'));
   const history = Array.from({ length: 25 }, (_, index) => ({
     role: index % 2 === 0 ? 'USER' : 'CHATBOT',
     message: 'message-' + index + (index === 5 ? 'x'.repeat(5000) : ''),
@@ -198,15 +210,18 @@ test('history sent to Cohere is capped at the latest 20 messages', async () => {
   }));
 
   assert.equal(result.status, 200);
-  const sent = JSON.parse(calls[0].init.body).chat_history;
-  assert.equal(sent.length, 20);
-  assert.equal(sent[0].message.startsWith('message-5'), true);
-  assert.equal(sent[19].message.startsWith('message-24'), true);
-  assert.equal(sent[0].message.length, 4000);
+  const sent = JSON.parse(calls[0].init.body).messages;
+  assert.equal(sent[0].role, 'system');
+  assert.equal(sent.length, 22);
+  assert.equal(sent[1].role, 'assistant');
+  assert.equal(sent[1].content.startsWith('message-5'), true);
+  assert.equal(sent[1].content.length, 4000);
+  assert.equal(sent[20].content.startsWith('message-24'), true);
+  assert.deepEqual(sent[21], { role: 'user', content: 'Continue' });
 });
 
 test('a full 20-message history still fits under the body limit', async () => {
-  const calls = mockFetch(() => new Response(JSON.stringify({ text: 'ok' }), { status: 200 }));
+  const calls = mockFetch(() => cohereOk('ok'));
   const history = Array.from({ length: 20 }, (_, index) => ({
     role: index % 2 === 0 ? 'USER' : 'CHATBOT',
     message: 'm'.repeat(4000),
@@ -216,11 +231,13 @@ test('a full 20-message history still fits under the body limit', async () => {
   }));
 
   assert.equal(result.status, 200);
-  assert.equal(JSON.parse(calls[0].init.body).chat_history.length, 20);
+  const sent = JSON.parse(calls[0].init.body).messages;
+  assert.equal(sent.length, 22);
+  assert.equal(sent.filter((item) => item.role !== 'system').length, 21);
 });
 
 test('a request with no Origin can still be tested and gets no CORS allow header', async () => {
-  mockFetch(() => new Response(JSON.stringify({ text: 'Hello from curl.' }), { status: 200 }));
+  mockFetch(() => cohereOk('Hello from curl.'));
   const result = await read(await worker.fetch(post({ message: 'Hi' }, { origin: null }), {
     COHERE_API_KEY: KEY,
   }));

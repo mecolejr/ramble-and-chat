@@ -43,7 +43,10 @@ test('the Worker is configured without a committed secret', () => {
   assert.match(toml, /name = "ramble-chat"/);
   assert.match(toml, /main = "src\/index\.js"/);
   assert.match(source, /env\.COHERE_API_KEY/);
-  assert.match(source, /command-r/);
+  assert.match(source, /command-r-08-2024/);
+  assert.match(source, /https:\/\/api\.cohere\.com\/v2\/chat/);
+  assert.doesNotMatch(source, /api\.cohere\.ai\/v1/);
+  assert.doesNotMatch(source, /['"]command-r['"]/);
   assert.doesNotMatch(toml, /COHERE_API_KEY\s*=\s*["'][^"']+["']/);
   assert.match(ignore, /\.dev\.vars/);
   assert.match(ignore, /\.wrangler/);

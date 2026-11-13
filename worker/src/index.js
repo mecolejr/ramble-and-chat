@@ -1,6 +1,6 @@
 const PREAMBLE = 'You are Ramble, a friendly and curious AI chatbot created by Marcus Cole. Keep replies warm and conversational, usually 2-4 sentences. Ask a natural follow-up question when it feels right.';
-const COHERE_URL = 'https://api.cohere.ai/v1/chat';
-const COHERE_MODEL = 'command-r';
+const COHERE_URL = 'https://api.cohere.com/v2/chat';
+const COHERE_MODEL = 'command-r-08-2024';
 const PAGES_ORIGIN = 'https://mecolejr.github.io';
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_MESSAGES = 20;
@@ -54,6 +54,29 @@ function sanitizeHistory(history) {
     cleaned.push({ role: item.role, message });
   }
   return cleaned.slice(-MAX_HISTORY_MESSAGES);
+}
+
+function toCohereMessages(history, message) {
+  const messages = [{ role: 'system', content: PREAMBLE }];
+  for (const item of history) {
+    messages.push({
+      role: item.role === 'USER' ? 'user' : 'assistant',
+      content: item.message,
+    });
+  }
+  messages.push({ role: 'user', content: message });
+  return messages;
+}
+
+function replyText(data) {
+  const content = data && data.message && typeof data.message === 'object' ? data.message.content : null;
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  let text = '';
+  for (const block of content) {
+    if (block && block.type === 'text' && typeof block.text === 'string') text += block.text;
+  }
+  return text;
 }
 
 function cohereFailure(data, key) {
@@ -130,9 +153,8 @@ export default {
         },
         body: JSON.stringify({
           model: COHERE_MODEL,
-          message,
-          preamble: PREAMBLE,
-          chat_history: sanitizeHistory(historyInput),
+          stream: false,
+          messages: toCohereMessages(sanitizeHistory(historyInput), message),
         }),
       });
     } catch {
@@ -150,7 +172,6 @@ export default {
       return json({ error: cohereFailure(data, key) }, 502, origin);
     }
 
-    const text = data && typeof data.text === 'string' ? data.text : '';
-    return json({ text }, 200, origin);
+    return json({ text: replyText(data) }, 200, origin);
   },
 };

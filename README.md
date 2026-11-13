@@ -4,7 +4,7 @@ Ramble is a small chatbot by Marcus Cole. You type a message, and Ramble answers
 
 https://mecolejr.github.io/ramble-and-chat/
 
-GitHub Pages only serves files. It cannot store a secret or call Cohere. The page sends each message to a Cloudflare Worker. The Worker holds the Cohere API key, asks Cohere to reply as Ramble, and sends the reply text back.
+GitHub Pages only serves files. It cannot store a secret or call Cohere. The page sends each message to a Cloudflare Worker. The Worker holds the Cohere API key and asks Cohere to reply as Ramble. It calls `https://api.cohere.com/v2/chat` with the model `command-r-08-2024`, and sends the reply text back.
 
 The key never goes in the website files. The page at `/ramble-and-chat/` loads `style.css` and `script.js` with relative links, so those files stay inside the project folder.
 
