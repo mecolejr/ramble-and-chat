@@ -1,6 +1,6 @@
-// Cloudflare Worker that calls Cohere. After `wrangler deploy`, replace this
-// placeholder with the URL Wrangler prints. The Cohere key stays on the Worker.
-const RAMBLE_WORKER_URL = 'https://ramble-chat.<your-subdomain>.workers.dev';
+// Deployed Cloudflare Worker. It calls Cohere; the key stays on the Worker.
+// The Worker accepts the POST on this host and does not use a path.
+const RAMBLE_WORKER_URL = 'https://ramble-chat.mecolejr.workers.dev';
 
 document.addEventListener('DOMContentLoaded', () => {
     const promptEl = document.getElementById('prompt');

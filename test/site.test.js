@@ -20,7 +20,7 @@ test('the chat page calls the Worker URL constant and explains a failed request'
   const script = read('script.js');
   const top = script.split('\n').slice(0, 20).join('\n');
 
-  assert.match(top, /const RAMBLE_WORKER_URL = 'https:\/\/ramble-chat\.<your-subdomain>\.workers\.dev'/);
+  assert.match(top, /const RAMBLE_WORKER_URL = 'https:\/\/ramble-chat\.mecolejr\.workers\.dev'/);
   assert.match(script, /fetch\(RAMBLE_WORKER_URL/);
   assert.match(script, /chatHistory\.slice\(-20\)/);
   assert.match(script, /Something went wrong connecting to Ramble\. Please try again\./);
@@ -59,6 +59,7 @@ test('the README explains Ramble and how to deploy the Worker', () => {
   assert.match(readme, /wrangler deploy/);
   assert.match(readme, /wrangler secret put COHERE_API_KEY/);
   assert.match(readme, /RAMBLE_WORKER_URL/);
+  assert.match(readme, /https:\/\/ramble-chat\.mecolejr\.workers\.dev/);
   assert.match(readme, /ramble-chat/);
   assert.match(readme, /https:\/\/mecolejr\.github\.io\/ramble-and-chat\//);
   assert.doesNotMatch(readme, /AI Prompt Saver/);

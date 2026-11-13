@@ -8,9 +8,13 @@ GitHub Pages only serves files. It cannot store a secret or call Cohere. The pag
 
 The key never goes in the website files. The page at `/ramble-and-chat/` loads `style.css` and `script.js` with relative links, so those files stay inside the project folder.
 
-## What you need to do once
+The page sends each message to the deployed Worker at https://ramble-chat.mecolejr.workers.dev. That address is `RAMBLE_WORKER_URL` at the top of `script.js`. The Worker accepts the POST on that host and does not use a path.
 
-You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account, Node.js, and a Cohere API key.
+GitHub Pages serves the `main` branch. After this change is on `main`, open https://mecolejr.github.io/ramble-and-chat/ and send a message. If the request fails, the page says "Something went wrong connecting to Ramble. Please try again."
+
+## Deploy the Worker again
+
+You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account, Node.js, and Wrangler. The Worker name in `worker/wrangler.toml` is `ramble-chat`.
 
 1. Install Wrangler and log in (a browser window opens):
 
@@ -19,26 +23,20 @@ You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account, Node.
    wrangler login
    ```
 
-2. Deploy the Worker from the `worker` folder:
+2. From the `worker` folder:
 
    ```bash
    cd worker
    wrangler deploy
    ```
 
-   The Worker name in `worker/wrangler.toml` is `ramble-chat`. Wrangler prints a URL like `https://ramble-chat.<your-subdomain>.workers.dev`. Copy it.
-
-3. Store the Cohere key as a secret named `COHERE_API_KEY`. Wrangler asks you to paste the key and does not write it into the repo. This also updates the deployed Worker:
+3. The Cohere key is a secret named `COHERE_API_KEY`. Wrangler asks you to paste the key and does not write it into the repo. This also updates the deployed Worker:
 
    ```bash
    wrangler secret put COHERE_API_KEY
    ```
 
-4. Open `script.js` and replace the placeholder in `RAMBLE_WORKER_URL` (the constant at the top of the file) with the Worker URL from step 2.
-
-5. Commit that URL and push it to the `main` branch. GitHub Pages serves `main`, so the live page does not change until the commit is there. Then open https://mecolejr.github.io/ramble-and-chat/ and send a message.
-
-Until `RAMBLE_WORKER_URL` is a real Worker URL, the page shows "Something went wrong connecting to Ramble. Please try again."
+`RAMBLE_WORKER_URL` is already set to https://ramble-chat.mecolejr.workers.dev. Change it only if a new deploy prints a different URL.
 
 ## Try the page on your computer
 
