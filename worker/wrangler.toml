@@ -1,0 +1,6 @@
+name = "ramble-chat"
+main = "src/index.js"
+compatibility_date = "2026-11-13"
+
+# The Cohere key is a Worker secret. Do not put it in this file.
+# From this folder, run: wrangler secret put COHERE_API_KEY

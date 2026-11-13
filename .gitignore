@@ -1,0 +1,5 @@
+# Local Worker secrets and Wrangler cache. Never commit the Cohere key.
+.dev.vars
+.env
+.wrangler/
+node_modules/

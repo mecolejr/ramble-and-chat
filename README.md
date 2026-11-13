@@ -1,126 +1,69 @@
-# AI Prompt Saver
+# Ramble
 
-A simple web application that allows users to save and manage AI prompts and their responses. Built with vanilla JavaScript, HTML, and Tailwind CSS.
+Ramble is a small chatbot by Marcus Cole. You type a message, and Ramble answers in a short, friendly way. The page is plain HTML, CSS, and JavaScript, and it is published with GitHub Pages:
 
-## Features
+https://mecolejr.github.io/ramble-and-chat/
 
-- ✨ **Clean, Modern UI**: Beautiful interface built with Tailwind CSS
-- 💾 **Local Storage**: Automatically saves prompts and responses to browser storage
-- 🗑️ **Entry Management**: View and delete saved entries
-- ⚡ **Mock AI Integration**: Simulated AI responses for testing
-- 📱 **Responsive Design**: Works on desktop and mobile devices
+GitHub Pages only serves files. It cannot store a secret or call Cohere. The page sends each message to a Cloudflare Worker. The Worker holds the Cohere API key, asks Cohere to reply as Ramble, and sends the reply text back.
 
-## Screenshots
+The key never goes in the website files. The page at `/ramble-and-chat/` loads `style.css` and `script.js` with relative links, so those files stay inside the project folder.
 
-![AI Prompt Saver Interface](https://via.placeholder.com/800x400/4F46E5/FFFFFF?text=AI+Prompt+Saver+Interface)
+## What you need to do once
 
-## Getting Started
+You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account, Node.js, and a Cohere API key.
 
-### Prerequisites
+1. Install Wrangler and log in (a browser window opens):
 
-- A modern web browser (Chrome, Firefox, Safari, Edge)
-- No additional software installation required
-
-### Installation
-
-1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/ai-prompt-saver.git
-   cd ai-prompt-saver
+   npm install -g wrangler
+   wrangler login
    ```
 
-2. Open `index.html` in your web browser:
+2. Deploy the Worker from the `worker` folder:
+
    ```bash
-   open index.html
+   cd worker
+   wrangler deploy
    ```
-   
-   Or simply double-click the `index.html` file.
 
-## Usage
+   The Worker name in `worker/wrangler.toml` is `ramble-chat`. Wrangler prints a URL like `https://ramble-chat.<your-subdomain>.workers.dev`. Copy it.
 
-1. **Enter a Prompt**: Type your AI prompt in the textarea
-2. **Get Response**: Click the "Get Response" button to receive a mock AI response
-3. **View Saved Entries**: Scroll down to see all your previously saved prompts and responses
-4. **Delete Entries**: Click the red "Delete" button to remove unwanted entries
+3. Store the Cohere key as a secret named `COHERE_API_KEY`. Wrangler asks you to paste the key and does not write it into the repo. This also updates the deployed Worker:
 
-## Project Structure
+   ```bash
+   wrangler secret put COHERE_API_KEY
+   ```
 
-```
-ai-prompt-saver/
-├── index.html          # Main HTML file
-├── script.js           # JavaScript functionality
-├── style.css           # Custom CSS styles (if needed)
-└── README.md           # Project documentation
-```
+4. Open `script.js` and replace the placeholder in `RAMBLE_WORKER_URL` (the constant at the top of the file) with the Worker URL from step 2.
 
-## Technologies Used
+5. Commit that URL and push it to the `main` branch. GitHub Pages serves `main`, so the live page does not change until the commit is there. Then open https://mecolejr.github.io/ramble-and-chat/ and send a message.
 
-- **HTML5**: Semantic markup and structure
-- **CSS3**: Styling with Tailwind CSS framework
-- **JavaScript (ES6+)**: Modern JavaScript with async/await
-- **Local Storage API**: Browser-based data persistence
+Until `RAMBLE_WORKER_URL` is a real Worker URL, the page shows "Something went wrong connecting to Ramble. Please try again."
 
-## Features in Detail
+## Try the page on your computer
 
-### Mock AI Response
-The application currently uses a mock AI response function that simulates a 1-second delay and returns a formatted response. This can be easily replaced with a real AI API integration.
+From the project folder:
 
-### Local Storage
-All prompts and responses are automatically saved to the browser's local storage, ensuring data persistence across browser sessions.
-
-### Responsive Design
-The interface is fully responsive and works seamlessly on both desktop and mobile devices.
-
-## Customization
-
-### Adding Real AI Integration
-To integrate with a real AI service, replace the `getAIResponse` function in `script.js`:
-
-```javascript
-const getAIResponse = async (prompt) => {
-    const response = await fetch('your-ai-api-endpoint', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer your-api-key'
-        },
-        body: JSON.stringify({ prompt })
-    });
-    const data = await response.json();
-    return data.response;
-};
+```bash
+python3 -m http.server 8080
 ```
 
-### Styling Customization
-The application uses Tailwind CSS for styling. You can customize the appearance by:
-- Modifying Tailwind classes in the HTML
-- Adding custom CSS in `style.css`
-- Configuring Tailwind theme in a `tailwind.config.js` file
+Open http://localhost:8080. The Worker accepts that address, `127.0.0.1`, and https://mecolejr.github.io.
 
-## Contributing
+For a local Worker, run `wrangler dev` inside `worker` and put the key in `worker/.dev.vars` as `COHERE_API_KEY=...`. That file is gitignored.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Files
 
-## License
+- `index.html`, `script.js`, `style.css` — the chat page
+- `worker/src/index.js` — the Worker
+- `worker/wrangler.toml` — the Worker name and settings
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+A message can be up to 4,000 characters. Only the latest 20 turns are sent along with it, and a request larger than 100 KB is refused.
 
-## Acknowledgments
+## Check
 
-- [Tailwind CSS](https://tailwindcss.com/) for the beautiful UI framework
-- [GitHub](https://github.com) for hosting and version control
+```bash
+node --test
+```
 
-## Support
-
-If you encounter any issues or have questions, please:
-1. Check the [Issues](https://github.com/yourusername/ai-prompt-saver/issues) page
-2. Create a new issue with detailed information
-3. Contact the maintainer
-
----
-
-**Made with ❤️ for the AI community** 
+If a Cohere key was ever pasted into `script.js`, retire that key in the Cohere dashboard and use a new one for the Worker secret. Old commits can still contain it.

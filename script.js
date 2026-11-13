@@ -1,3 +1,7 @@
+// Cloudflare Worker that calls Cohere. After `wrangler deploy`, replace this
+// placeholder with the URL Wrangler prints. The Cohere key stays on the Worker.
+const RAMBLE_WORKER_URL = 'https://ramble-chat.<your-subdomain>.workers.dev';
+
 document.addEventListener('DOMContentLoaded', () => {
     const promptEl = document.getElementById('prompt');
     const submitBtn = document.getElementById('submit');
@@ -46,16 +50,25 @@ document.addEventListener('DOMContentLoaded', () => {
     promptEl.addEventListener('input', autoResize);
 
     const getAIResponse = async (userMessage) => {
-        const response = await fetch('/.netlify/functions/chat', {
+        const response = await fetch(RAMBLE_WORKER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: userMessage,
-                chat_history: chatHistory.map(h => ({ role: h.role, message: h.message }))
+                chat_history: chatHistory.slice(-20).map(h => ({ role: h.role, message: h.message }))
             })
         });
 
-        if (!response.ok) throw new Error('Request failed: ' + response.status);
+        if (!response.ok) {
+            let detail = '';
+            try {
+                const errBody = await response.json();
+                if (errBody && errBody.error) detail = ': ' + errBody.error;
+            } catch {
+                detail = '';
+            }
+            throw new Error('Request failed: ' + response.status + detail);
+        }
 
         const data = await response.json();
         const reply = data.text ? data.text.trim() : '';
