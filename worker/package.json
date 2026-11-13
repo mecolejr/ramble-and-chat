@@ -1,0 +1,5 @@
+{
+  "name": "ramble-worker",
+  "private": true,
+  "type": "module"
+}
